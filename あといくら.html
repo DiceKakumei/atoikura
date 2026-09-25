@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>今月あといくら？</title>
+<style>
+  :root {
+    --bg: #eef3f0; --card: #ffffff; --line: #dbe5df; --text: #1f2a24; --sub: #6b7a72;
+    --accent: #2f7d5b; --accent-soft: #e2f1e9; --warn: #d99a2b; --danger: #c0483d;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Meiryo", sans-serif; }
+  #app { max-width: 480px; margin: 0 auto; padding: 20px 16px 40px; display: flex; flex-direction: column; gap: 14px; }
+  header h1 { margin: 0; font-size: 22px; letter-spacing: .02em; }
+  header p { margin: 4px 0 0; font-size: 13px; color: var(--sub); }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; }
+  .label { font-size: 12px; font-weight: 700; color: var(--sub); letter-spacing: .06em; margin-bottom: 6px; }
+
+  .field { display: flex; align-items: center; gap: 8px; background: var(--bg); border: 1.5px solid var(--line);
+    border-radius: 12px; padding: 0 12px; }
+  .field:focus-within { border-color: var(--accent); }
+  .field span { color: var(--sub); font-weight: 700; }
+  .field input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; font-size: 20px;
+    font-weight: 700; padding: 12px 0; color: var(--text); font-family: inherit; }
+  .field input::placeholder { color: #a9b6ae; font-weight: 500; font-size: 16px; }
+
+  #result .remain { font-size: 52px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+  #result .remain.over { color: var(--danger); }
+  #result .status { font-size: 13px; color: var(--sub); margin-top: 6px; min-height: 18px; }
+  #result .status.over { color: var(--danger); font-weight: 700; }
+  .bar { height: 10px; background: var(--accent-soft); border-radius: 6px; overflow: hidden; margin: 14px 0; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 6px; transition: width .35s ease, background .2s; }
+  .bar i.mid { background: var(--warn); } .bar i.high { background: var(--danger); }
+  .stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .stat { background: var(--bg); border-radius: 12px; padding: 10px 10px; }
+  .stat b { display: block; font-size: 17px; font-variant-numeric: tabular-nums; }
+  .stat small { font-size: 11px; color: var(--sub); }
+
+  .add-row { display: flex; gap: 8px; }
+  .add-row .field { flex: 1; min-width: 0; }
+  button { font-family: inherit; cursor: pointer; }
+  #add { border: none; background: var(--accent); color: #fff; font-size: 16px; font-weight: 700; border-radius: 12px; padding: 0 22px; white-space: nowrap; flex: none; }
+  #add:active { transform: translateY(1px); }
+  .chips { display: flex; gap: 8px; margin-top: 10px; }
+  .chips button { flex: 1; border: 1px solid var(--line); background: #fff; color: var(--sub); font-size: 13px; font-weight: 700; border-radius: 999px; padding: 8px 0; }
+  .chips button:hover { background: var(--accent-soft); color: var(--accent); }
+
+  #list { list-style: none; margin: 0; padding: 0; }
+  #list li { display: flex; align-items: center; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--line); }
+  #list li:last-child { border-bottom: none; }
+  #list .d { font-size: 13px; color: var(--sub); width: 44px; font-variant-numeric: tabular-nums; }
+  #list .a { flex: 1; font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  #list .x { border: none; background: transparent; color: var(--sub); font-size: 13px; padding: 4px 8px; border-radius: 8px; }
+  #list .x:hover { color: var(--danger); background: #f7e6e4; }
+  .empty { font-size: 13px; color: var(--sub); }
+  .note { font-size: 11px; color: var(--sub); text-align: center; }
+  #warn { display: none; background: #f6e4d8; color: #7a4a2c; font-size: 12px; padding: 8px 12px; border-radius: 10px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>今月あといくら？</h1>
+    <p>使った金額だけ入れれば、残りと1日の目安が分かる</p>
+  </header>
+
+  <div id="warn">このブラウザでは保存が使えません。タブを閉じると記録が消えます。</div>
+
+  <section class="card">
+    <div class="label">今月の予算（自由に使えるお金）</div>
+    <label class="field"><span>¥</span><input id="budget" type="text" inputmode="numeric" placeholder="例：12000" autocomplete="off"></label>
+  </section>
+
+  <section class="card" id="result" aria-live="polite">
+    <div class="label">今月あと</div>
+    <div class="remain" id="remain">—</div>
+    <div class="status" id="status">まず予算を入れてください</div>
+    <div class="bar"><i id="bar"></i></div>
+    <div class="stats">
+      <div class="stat"><small>1日あたり</small><b id="perday">—</b></div>
+      <div class="stat"><small>残り日数</small><b id="daysleft">—</b></div>
+      <div class="stat"><small>今日使った</small><b id="today">—</b></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="label">使った金額</div>
+    <div class="add-row">
+      <label class="field"><span>¥</span><input id="amount" type="text" inputmode="numeric" placeholder="金額だけ" autocomplete="off"></label>
+      <button id="add" type="button">使った</button>
+    </div>
+    <div class="chips">
+      <button type="button" data-add="100">+100</button>
+      <button type="button" data-add="500">+500</button>
+      <button type="button" data-add="1000">+1,000</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="label">今月の記録</div>
+    <ul id="list"></ul>
+    <div class="empty" id="empty">まだ記録がありません</div>
+  </section>
+
+  <p class="note">データはこのブラウザの中だけに保存されます（外部には送信しません）</p>
+</div>
+
+<script>
+const KEY = "ato-ikura";
+const $ = (id) => document.getElementById(id);
+const yen = (n) => (n < 0 ? "-" : "") + "¥" + Math.abs(Math.round(n)).toLocaleString("ja-JP");
+
+function two(n) { return String(n).padStart(2, "0"); }
+function monthKey(d) { return d.getFullYear() + "-" + two(d.getMonth() + 1); }
+function dayKey(d) { return monthKey(d) + "-" + two(d.getDate()); }
+
+// 全角数字・カンマ・空白を取り除いて整数にする。数字が無ければ0
+function parseAmount(text) {
+  const half = text.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0));
+  const digits = half.replace(/[^0-9]/g, "");
+  return digits ? Number(digits) : 0;
+}
+
+let data = { budget: null, months: {} };
+function load() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(KEY));
+    if (raw && typeof raw === "object") data = { budget: raw.budget ?? null, months: raw.months || {} };
+  } catch (e) {}
+}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(data)); }
+  catch (e) { $("warn").style.display = "block"; }
+}
+
+function render() {
+  const now = new Date();
+  const entries = data.months[monthKey(now)] || [];
+  const spent = entries.reduce((sum, e) => sum + e.amount, 0);
+  const todaySpent = entries.filter((e) => e.day === dayKey(now)).reduce((sum, e) => sum + e.amount, 0);
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const daysLeft = daysInMonth - now.getDate() + 1;
+
+  $("daysleft").textContent = daysLeft + "日";
+  $("today").textContent = yen(todaySpent);
+
+  const remain = $("remain"), status = $("status"), bar = $("bar");
+  if (data.budget === null) {
+    remain.textContent = "—"; remain.className = "remain";
+    status.textContent = "まず予算を入れてください"; status.className = "status";
+    $("perday").textContent = "—";
+    bar.style.width = "0"; bar.className = "";
+  } else {
+    const left = data.budget - spent;
+    remain.textContent = yen(left);
+    remain.className = "remain" + (left < 0 ? " over" : "");
+    $("perday").textContent = left > 0 ? yen(Math.floor(left / daysLeft)) : "¥0";
+    if (left < 0) {
+      status.textContent = "予算を " + yen(-left) + " 超えています"; status.className = "status over";
+    } else {
+      const pct = data.budget > 0 ? Math.round((spent / data.budget) * 100) : 0;
+      status.textContent = "予算の " + pct + "% を使いました"; status.className = "status";
+    }
+    const ratio = data.budget > 0 ? Math.min(1, spent / data.budget) : 1;
+    bar.style.width = ratio * 100 + "%";
+    bar.className = ratio >= 0.9 ? "high" : ratio >= 0.7 ? "mid" : "";
+  }
+
+  const list = $("list");
+  list.innerHTML = "";
+  [...entries].reverse().forEach((e) => {
+    const li = document.createElement("li");
+    const d = document.createElement("span"); d.className = "d";
+    d.textContent = Number(e.day.slice(5, 7)) + "/" + Number(e.day.slice(8, 10));
+    const a = document.createElement("span"); a.className = "a"; a.textContent = yen(e.amount);
+    const x = document.createElement("button"); x.className = "x"; x.type = "button"; x.textContent = "削除";
+    x.addEventListener("click", () => removeEntry(e.id));
+    li.append(d, a, x);
+    list.appendChild(li);
+  });
+  $("empty").style.display = entries.length ? "none" : "block";
+}
+
+function addEntry() {
+  const amount = parseAmount($("amount").value);
+  if (amount <= 0) { $("amount").value = ""; $("amount").focus(); return; }
+  const now = new Date();
+  const mk = monthKey(now);
+  (data.months[mk] = data.months[mk] || []).push({
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    day: dayKey(now),
+    amount,
+  });
+  save();
+  $("amount").value = "";
+  render();
+  $("amount").focus();
+}
+
+function removeEntry(id) {
+  const mk = monthKey(new Date());
+  data.months[mk] = (data.months[mk] || []).filter((e) => e.id !== id);
+  save();
+  render();
+}
+
+$("budget").addEventListener("input", () => {
+  const raw = $("budget").value.trim();
+  data.budget = raw === "" ? null : parseAmount(raw);
+  save();
+  render();
+});
+$("add").addEventListener("click", addEntry);
+$("amount").addEventListener("keydown", (e) => { if (e.key === "Enter") addEntry(); });
+document.querySelectorAll(".chips button").forEach((b) => {
+  b.addEventListener("click", () => {
+    $("amount").value = String(parseAmount($("amount").value) + Number(b.dataset.add));
+    $("amount").focus();
+  });
+});
+
+load();
+if (data.budget !== null) $("budget").value = String(data.budget);
+render();
+</script>
+</body>
+</html>
