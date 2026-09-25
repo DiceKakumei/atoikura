@@ -25,6 +25,9 @@ def label(n):
     return (n.get('text') or '') + '|' + (n.get('content-desc') or '')
 
 def tap(n):
+    x1, y1, x2, y2 = map(int, re.match(r'\[(\d+),(\d+)\]\[(\d+),(\d+)\]', n.get('bounds')).groups())
+    if y2 <= y1 or x2 <= x1:
+        raise SystemExit('element not visible: ' + label(n))
     x, y = center(n)
     print('tap', x, y, label(n))
     sh('input', 'tap', str(x), str(y))
