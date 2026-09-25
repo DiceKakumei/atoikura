@@ -2,7 +2,13 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#2f7d5b">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="あといくら">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <title>今月あといくら？</title>
 <style>
   :root {
@@ -12,7 +18,7 @@
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--bg); color: var(--text);
     font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Meiryo", sans-serif; }
-  #app { max-width: 480px; margin: 0 auto; padding: 20px 16px 40px; display: flex; flex-direction: column; gap: 14px; }
+  #app { max-width: 480px; margin: 0 auto; padding: max(20px, env(safe-area-inset-top)) 16px max(40px, env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 14px; }
   header h1 { margin: 0; font-size: 22px; letter-spacing: .02em; }
   header p { margin: 4px 0 0; font-size: 13px; color: var(--sub); }
 
@@ -221,6 +227,11 @@ document.querySelectorAll(".chips button").forEach((b) => {
     $("amount").focus();
   });
 });
+
+// ホーム画面に追加して使うためのService Worker（アプリ化したAndroid版では使わない）
+if ("serviceWorker" in navigator && location.protocol.startsWith("http") && !window.Capacitor) {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
 
 load();
 if (data.budget !== null) $("budget").value = String(data.budget);
