@@ -15,6 +15,7 @@
 - [Releases](https://github.com/DiceKakumei/atoikura/releases)から`atoikura.apk`をダウンロードして開く
 - 「提供元不明のアプリ」のインストール許可が必要（個人が配布しているため。Google Playには出していない）
 - 中身はブラウザ版と同じ（Capacitorで包んだもの）。ビルドは`.github/workflows/build-apk.yml`（GitHub Actions）で自動化している
+- 動作確認：Androidエミュレーター（Pixel 6、Android 14）で、インストール・起動・入力・アプリを閉じて開き直してもデータが残ることを確認済み（`.github/workflows/emulator-demo.yml`、`demo/`）。実機での確認は未実施
 
 ### ホーム画面に追加（AndroidでもiPhoneでも）
 - ブラウザで上のURLを開き、メニューの「ホーム画面に追加」（iPhoneはSafariの共有ボタン→「ホーム画面に追加」）
