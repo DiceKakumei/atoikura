@@ -64,6 +64,18 @@
   .empty { font-size: 13px; color: var(--sub); }
   .note { font-size: 11px; color: var(--sub); text-align: center; }
   #warn { display: none; background: #f6e4d8; color: #7a4a2c; font-size: 12px; padding: 8px 12px; border-radius: 10px; }
+
+  /* スマホでは1列のまま。PC（幅900px以上）では左＝予算＋結果、右＝入力＋記録の2列 */
+  .cols, .col { display: contents; }
+  @media (min-width: 900px) {
+    #app { max-width: 1040px; padding: 40px 32px 48px; gap: 18px; }
+    header h1 { font-size: 28px; }
+    header p { font-size: 14px; }
+    .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+    .col { display: flex; flex-direction: column; gap: 18px; }
+    .card { padding: 20px 24px; }
+    #result .remain { font-size: 64px; }
+  }
 </style>
 </head>
 <body>
@@ -75,6 +87,8 @@
 
   <div id="warn">このブラウザでは保存が使えません。タブを閉じると記録が消えます。</div>
 
+  <div class="cols">
+  <div class="col">
   <section class="card">
     <div class="label">今月の予算（自由に使えるお金）</div>
     <label class="field"><span>¥</span><input id="budget" type="text" inputmode="numeric" placeholder="例：12000" autocomplete="off"></label>
@@ -91,7 +105,9 @@
       <div class="stat"><small>今日使った</small><b id="today">—</b></div>
     </div>
   </section>
+  </div>
 
+  <div class="col">
   <section class="card">
     <div class="label">使った金額</div>
     <div class="add-row">
@@ -110,6 +126,8 @@
     <ul id="list"></ul>
     <div class="empty" id="empty">まだ記録がありません</div>
   </section>
+  </div>
+  </div>
 
   <p class="note">データはこのブラウザの中だけに保存されます（外部には送信しません）</p>
 </div>
